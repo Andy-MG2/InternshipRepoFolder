@@ -1,0 +1,11 @@
+# Personal application material — keep out of any shared repo.
+# tracker.db stores portal passwords in plaintext; resumes carry phone + email.
+applications/
+experiences/
+
+# Local noise
+.DS_Store
+__pycache__/
+*.pyc
+venv/
+.venv/
