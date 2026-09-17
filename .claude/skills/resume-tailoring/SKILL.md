@@ -57,6 +57,12 @@ One page, always. The renderer reports remaining space or overflow; resolve
 overflow by cutting words from the *newly added* material first, never by
 dropping content that was already on the master.
 
+**Metrics stay.** Every number on the master — package counts, team sizes,
+accuracies, record counts, competitor counts, percentage gains — survives the
+rewrite unless the user says otherwise. When a bullet needs trimming, cut
+adjectives and connective phrasing, never the figure. A rewrite that drops a
+metric to make room for a JD keyword has traded evidence for vocabulary.
+
 Typography is fixed and is produced only by `render_resume.py` (Phase 4.3) —
 never hand-build a DOCX or PDF:
 - Times New Roman throughout
@@ -304,6 +310,7 @@ Then apply these moves, in order of preference:
 | Reorder within a list | move SQL first in Languages for a data role |
 | Add a real skill to a list | add AWS to Tools when `notes/` shows AWS use |
 | Emphasis shift | same facts, foregrounding the part the JD cares about |
+| Keep the number | "achieving 86% accuracy across 3000 records" stays even when the sentence is rebuilt |
 | Abstraction shift | more or less technical detail, matching the audience |
 
 **Use the posting's own words wherever they honestly fit.** If the JD says "data
@@ -424,12 +431,11 @@ Save as `AndyGarcia_<Company>_<Role>_<YYYY-MM-DD>.md`.
 **4.3 Render DOCX + PDF.** Always both. Never hand-build either.
 
 ```bash
-# one-time setup
-python3 -m venv <scratchpad>/venv
-<scratchpad>/venv/bin/pip install python-docx reportlab
+# one-time setup (repo root; .venv is gitignored)
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 
 # render
-<scratchpad>/venv/bin/python .claude/skills/resume-tailoring/render_resume.py \
+.venv/bin/python .claude/skills/resume-tailoring/render_resume.py \
     <folder>/AndyGarcia_<Company>_<Role>_<YYYY-MM-DD>.md \
     <folder>/AndyGarcia_<Company>_<Role>_<YYYY-MM-DD>.pdf \
     <folder>/AndyGarcia_<Company>_<Role>_<YYYY-MM-DD>.docx
@@ -452,7 +458,13 @@ something more useful; consider a `coverable` item you left out.
 **Keep it tight** — it is a change log, not an essay. One line per explanation,
 no restating the resume, no listing what you chose not to do beyond a short
 summary. The Was/Now/Why lines each get their own paragraph so they don't run
-together when the markdown renders.
+together when the markdown renders, and every change ends with a `---` rule so
+entries read as separate cards in the dashboard.
+
+**Pure reorders are not changes.** Reordering a list (coursework, languages,
+tools) without adding or removing anything gets one line under "Not changed"
+— `Reordered: coursework, languages` — never a Was/Now entry. Only wording
+that was added, removed, or rewritten goes under Changes.
 
 ```markdown
 # Tailoring Changes — {Company}, {Role}
@@ -482,11 +494,14 @@ describe the work: "end to end", "data pipeline", "code review". Comma list.}
 
 **Why:** {one line}  ·  **Source:** {file backing the new wording}
 
-{blank line, then the next change}
+---
+
+{next change, same shape, ending in its own ---}
 
 ## Not changed
-{2-3 lines total. What stayed verbatim and the one reason why. Do not enumerate
-every untouched bullet.}
+{2-3 lines total. What stayed verbatim and the one reason why, plus one line
+for pure reorders: "Reordered: coursework, languages". Do not enumerate every
+untouched bullet.}
 
 ## Questions asked
 - {question} → {answer, or "unanswered — kept master wording"}
@@ -502,9 +517,9 @@ specific and useful rather than reassuring.}
 {One line: unchanged from master, or the change the user approved.}
 ```
 
-Every content line that changed appears under Changes — that exhaustiveness is
-what lets the user audit that nothing was invented. The *explanations* are what
-stay short.
+Every content line whose wording changed appears under Changes — that
+exhaustiveness is what lets the user audit that nothing was invented. Reorders
+are excluded (see above). The *explanations* are what stay short.
 
 **4.5 Record in the tracker.**
 

@@ -258,7 +258,7 @@ Andy Garcia
 Roman, same margins, same centered header, so the pair looks like one set:
 
 ```bash
-<scratchpad>/venv/bin/python .claude/skills/resume-tailoring/render_resume.py --letter \
+.venv/bin/python .claude/skills/resume-tailoring/render_resume.py --letter \
     <folder>/AndyGarcia_<Company>_<Role>_CoverLetter_<date>.md \
     <folder>/AndyGarcia_<Company>_<Role>_CoverLetter_<date>.pdf \
     <folder>/AndyGarcia_<Company>_<Role>_CoverLetter_<date>.docx

@@ -1,28 +1,20 @@
 # Job Application System
 
-Paste a job description into Claude Code. Get back a tailored one-page resume, a
-matching cover letter, a saved copy of the posting, a written record of every
-change that was made and why, and a row in a SQLite tracker.
+Paste a job description into Claude Code. Get a tailored one-page resume, a
+matching cover letter, the saved posting, a log of every change, and a row in a
+SQLite tracker. A Streamlit dashboard sits on top.
 
----
+## Setup
 
-## Status
+```bash
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+```
 
-| Piece | State |
-|---|---|
-| `resume-tailoring` skill | Working |
-| `coverletter-tailoring` skill | Working |
-| `render_resume.py` | working |
-| SQLite tracker | Working — 4 applications |
-| Streamlit dashboard | Not built |
-| Gmail scanning | Not built |
-| `/apply` slash command | Not built — invoke the skills directly |
+Python 3.11+ (tested 3.14.7). SQLite is stdlib. [requirements.txt](requirements.txt)
+pins everything: `python-docx` and `reportlab` for rendering, `streamlit[pdf]`,
+`pandas`, `plotly` for the dashboard, `claude-agent-sdk` for the chat page.
 
----
-
-## Using it
-
-Invoke the skill and paste the posting:
+## Usage
 
 ```
 /resume-tailoring
@@ -30,106 +22,72 @@ Invoke the skill and paste the posting:
 ```
 
 The cover letter runs automatically afterward. Say **"resume only"** to skip it,
-or run `/coverletter-tailoring` on its own against an application folder that
-already exists.
+or run `/coverletter-tailoring` alone on an existing application folder. For
+several postings at once, say so ("these 3 jobs") — see `multi-job-workflow.md`.
 
-For several postings at once, say so ("these 3 jobs") — batch mode runs the
-experience-discovery interview once across all of them instead of repeating it
-per job. See `multi-job-workflow.md`.
-
-**Setup**, once, for the renderer:
-
-```bash
-python3 -m venv venv
-venv/bin/pip install python-docx reportlab
-```
-
----
-
-## What you get
-
-One folder per application, `applications/<date>-<company>-<role>/`:
+Output, one folder per application in `applications/<date>-<company>-<role>/`:
 
 ```
 job-description.md                                   the posting, verbatim
-tailoring-changes.md                                 what changed and why
+tailoring-changes.md                                 what changed and why (reorders excluded)
 AndyGarcia_<Company>_<Role>_<date>.md/.docx/.pdf     the resume
 AndyGarcia_<Company>_<Role>_CoverLetter_<date>.*     the letter
 ```
 
-`tailoring-changes.md` is the audit trail: what the posting asked for, a coverage
-table scoring how much of it landed, every Was → Now rewrite with the source file
-that backs it, the questions that got asked, and an honest list of what's still
-missing from your background.
-
----
-
-## The rules that keep it honest
-
-These live in the skills as non-negotiable constraints. They exist because each
-one was violated at some point and the output was worse for it.
-
-- **Structure is frozen, content is not.** 
-- **One page.** T
-- **Never invent** 
-- **Match the verb to the involvement.** 
-- **Cover letters don't invent enthusiasm.** 
-
----
-
-## Structure
-
-```
-InternshipRepoFolder/
-├── .claude/skills/
-│   ├── resume-tailoring/
-│   │   ├── SKILL.md
-│   │   ├── multi-job-workflow.md      batch mode for 2+ postings
-│   │   └── render_resume.py           all layout lives here
-│   └── coverletter-tailoring/
-│       └── SKILL.md
-│
-├── experiences/                       source material you write  (gitignored)
-│   ├── AndyGarcia_Resume_Master.md    the baseline structure
-│   └── notes/                         STAR stories, project write-ups,
-│                                      past cover letters (voice samples)
-│
-├── applications/                      output                     (gitignored)
-│   ├── tracker.db
-│   └── 2026-09-08-stripe-software-engineer-intern/
-│       ├── job-description.md
-│       ├── tailoring-changes.md
-│       └── AndyGarcia_Stripe_SoftwareEngineerIntern_2026-09-08.*
-│
-├── .gitignore
-└── README.md
-```
-
----
-
-## The renderer
-
-`render_resume.py` owns every layout decision, so the markdown stays a *content*
-spec. Two modes:
+## Dashboard
 
 ```bash
-venv/bin/python .claude/skills/resume-tailoring/render_resume.py in.md out.pdf out.docx
-venv/bin/python .claude/skills/resume-tailoring/render_resume.py --letter in.md out.pdf out.docx
+.venv/bin/streamlit run dashboard/app.py
 ```
 
-Times New Roman throughout; name 19pt centered, body 10pt, section headings 10pt
-bold with a rule beneath; margins 0.5in top/bottom and 0.6in left/right. In
-resume mode, `left — **right**` puts dates flush right at the margin. Letter mode
-treats each line as a paragraph and blank lines as spacing, with the same header
-so the two documents look like a set.
+**Applications** — the tracker table. A search box filters by company, role,
+stage, type or location. Rows sort by stage (accepted, offer, interviewing,
+applied, rejected, ghosted), newest first. Click any row to open its documents
+below: resume and cover letter PDFs side by side, then tabs for the tailoring
+change log and the job description. A second search box picks an application
+by name instead. **Edit mode** swaps the table for a spreadsheet-style editor: edit any cell,
+type into the blank bottom row to add an application (company, position, and
+date are enough), or select rows and press Delete to remove them. **Save
+changes** applies edits, adds, and deletes together; deleted rows leave the
+tracker but their folders stay on disk.
 
-It prints either `fits one page: 20pt (~2 lines) of space left` or
-`OVERFLOW: exceeds one page by 22pt` and exits 1. This matters: the canvas
-doesn't paginate, so without the check, overflow silently falls off the page.
+**New application** — a chat with Claude Code running the project's skills,
+every command auto-approved. Paste a posting and ask for the resume and/or
+cover letter as in the terminal; checkpoint questions come back as chat
+messages and your reply continues the session. Uses the same login as Claude
+Code and is billed the same way. The session survives page reloads (a turn in
+progress keeps streaming) and, after a server restart, **Resume last chat**
+reconnects to the same conversation with full context.
 
----
+**Analytics** — range presets (7 / 30 / 90 days / all) or a custom date range,
+a stage filter, and day/week grouping. Shows totals, running total over time,
+applications per day (click a bar to list that day's applications; drag the
+slider to zoom), and outcomes by stage.
 
-## Schema
+## Rules
+
+Non-negotiable constraints in the skills:
+
+- **Structure is frozen, content is not.** The master resume's sections and
+  order never change; wording is rewritten to fit the posting.
+- **One page.** The renderer exits non-zero on overflow.
+- **Never invent** experience, numbers, names, or enthusiasm.
+- **Match the verb to the involvement.**
+
+## Renderer
+
+`render_resume.py` owns all layout; the markdown is a content spec.
+
+```bash
+.venv/bin/python .claude/skills/resume-tailoring/render_resume.py in.md out.pdf out.docx
+.venv/bin/python .claude/skills/resume-tailoring/render_resume.py --letter in.md out.pdf out.docx
+```
+
+Times New Roman; name 19pt, body 10pt; margins 0.5in top/bottom, 0.6in sides.
+`left — **right**` puts dates flush right. Prints `fits one page: Npt left` or
+`OVERFLOW: exceeds one page by Npt` (exit 1).
+
+## Tracker schema
 
 ```sql
 CREATE TABLE applications (
@@ -137,36 +95,53 @@ CREATE TABLE applications (
     company         TEXT NOT NULL,
     role            TEXT NOT NULL,
     role_type       TEXT,               -- Internship | Co-op | New Grad
-    link            TEXT,
+    link            TEXT,               -- job posting
     location        TEXT,
     applied_date    DATE NOT NULL,
     stage           TEXT NOT NULL        -- applied | interviewing | offer
                     DEFAULT 'applied',   -- accepted | rejected | ghosted
+    portal_link     TEXT,               -- where to check application status
     portal_email    TEXT,
-    portal_password TEXT,
+    portal_password TEXT,               -- plaintext; applications/ is gitignored
     folder          TEXT NOT NULL,
-    cover_letter    TEXT NOT NULL        -- yes | no
-                    DEFAULT 'no'
+    cover_letter    TEXT NOT NULL DEFAULT 'no'
 );
 ```
 
-The skills write everything except `stage` beyond `'applied'`, `portal_email`,
-and `portal_password`. Stage transitions are yours to make.
+The skills insert rows with `stage = 'applied'`. Stage, portal link and
+credentials are yours to set — in the dashboard, or directly:
 
-`portal_password` is plaintext. That's the tradeoff for a single-file store with
-no server; it's why `applications/` is gitignored.
+```bash
+sqlite3 applications/tracker.db "UPDATE applications SET stage='interviewing' WHERE id='<folder-name>';"
+```
 
----
+## Layout
 
-## Planned
+```
+.claude/skills/
+├── resume-tailoring/
+│   ├── SKILL.md
+│   ├── multi-job-workflow.md          batch mode for 2+ postings
+│   └── render_resume.py
+└── coverletter-tailoring/
+    └── SKILL.md
+dashboard/
+├── app.py                             entry point, page navigation
+├── tracker.py                         DB access, search, save
+├── agent.py                           Claude Code session for the chat page
+└── views/
+    ├── applications.py
+    ├── analytics.py
+    └── new_application.py
+experiences/                           source material (gitignored)
+├── AndyGarcia_Resume_Master.md
+└── notes/                             STAR stories, voice samples
+applications/                          output (gitignored)
+├── tracker.db
+└── <date>-<company>-<role>/
+requirements.txt
+```
 
-**Dashboard.** `streamlit run dashboard/app.py` over the applications table —
-`st.data_editor` for editing stage and pasting portal credentials, plus a stage
-breakdown and applications-over-time chart. Worth building once there are enough
-rows to look at.
+## Not built
 
-**Email scanning.** Needs a Gmail MCP connector. `/scan-email` would search for
-each non-terminal company since its `applied_date`, classify replies, and
-**propose** stage changes for approval rather than writing them — rejections and
-"still reviewing" look alike to a classifier, and a wrong automatic update costs
-more than it saves.
+- Gmail scanning — propose stage changes from replies, for approval.

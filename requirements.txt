@@ -1,0 +1,14 @@
+# Python 3.11+ (tested on 3.14.7). sqlite3 is stdlib; any SQLite >= 3.35 works
+# (tested with 3.53.4 bundled in Python, 3.43.2 CLI).
+#
+#   python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+
+# render_resume.py — DOCX + PDF output
+python-docx==1.2.0
+reportlab==5.0.1
+
+# dashboard/ — streamlit run dashboard/app.py
+streamlit[pdf]==1.63.0
+pandas==3.0.5
+plotly==7.0.0
+claude-agent-sdk==0.2.153
